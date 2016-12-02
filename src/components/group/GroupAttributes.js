@@ -44,7 +44,7 @@ export default class GroupAttributes extends Component {
     const {params, session, bucket, group, capabilities} = this.props;
     const {bid, gid} = params;
     const {busy, data: formData} = group;
-    if (busy) {
+    if (busy || formData == null) {
       return <Spinner />;
     }
     return (

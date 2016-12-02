@@ -183,6 +183,9 @@ export function* createGroup(getState: GetStateFn, action: ActionType<typeof act
 export function* updateGroup(getState: GetStateFn, action: ActionType<typeof actions.updateGroup>): SagaGen {
   const {bid, gid, group: {data, permissions}} = action;
   const {group: {data: loadedData}} = getState();
+  if (loadedData == null) {
+    return;
+  }
   const {last_modified} = loadedData;
   try {
     const bucket = getBucket(bid);
@@ -208,7 +211,11 @@ export function* updateGroup(getState: GetStateFn, action: ActionType<typeof act
 
 export function* deleteGroup(getState: GetStateFn, action: ActionType<typeof actions.deleteGroup>): SagaGen {
   const {bid, gid} = action;
-  const {group: {data: {last_modified}}} = getState();
+  const {group: {data: loadedData}} = getState();
+  if (loadedData == null) {
+    return;
+  }
+  const {last_modified} = loadedData;
   try {
     const bucket = getBucket(bid);
     yield call([bucket, bucket.deleteGroup], gid, {safe: true, last_modified});

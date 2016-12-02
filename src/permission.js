@@ -66,6 +66,9 @@ export function canCreateGroup(session: SessionState, bucket: BucketState): bool
 
 export function canEditGroup(session: SessionState, bucket: BucketState, group: GroupState): boolean {
   return can(session, (perm: PermissionsListEntry) => {
+    if (group.data == null) {
+      return false;
+    }
     return (
       (perm.resource_name == "bucket") ||
       (perm.resource_name == "group" &&
