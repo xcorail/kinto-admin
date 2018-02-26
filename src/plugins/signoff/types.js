@@ -1,12 +1,15 @@
 /* @flow */
-export type SignoffState = {
-  resource: ?WorkflowInfo
+
+export type CollectionsInfo = {
+  source: SourceInfo,
+  destination: DestinationInfo,
+  preview: ?PreviewInfo,
 };
 
-export type WorkflowInfo = {
-  source: SourceInfo,
-  preview: PreviewInfo,
-  destination: DestinationInfo,
+export type SignoffState = {
+  collections: ?CollectionsInfo,
+  pendingConfirmReviewRequest: boolean,
+  pendingConfirmDeclineChanges: boolean,
 };
 
 export type SourceInfo = {
@@ -15,7 +18,9 @@ export type SourceInfo = {
   changes: Object,
   lastAuthor: string,
   lastEditor: string,
+  lastEditorComment: string,
   lastReviewer: string,
+  lastReviewerComment: string,
   lastStatusChanged: number,
   editors_group?: string,
   reviewers_group?: string,

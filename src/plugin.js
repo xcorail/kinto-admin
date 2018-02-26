@@ -9,18 +9,19 @@ import type { GetStateFn, PluginSagas } from "./types";
 import React from "react";
 import { Route } from "react-router";
 
-
 export function flattenPluginsRoutes(
   plugins: Object[],
   defaultComponents: Object
 ): Object[] {
-  return plugins.reduce((acc, {routes=[]}) => {
+  return plugins.reduce((acc, { routes = [] }) => {
     const pluginRoutes = routes.map((route, key) => {
-      const {components, ...props} = route;
+      const { components, ...props } = route;
       return (
-        <Route key={key}
-               components={{...defaultComponents, ...components}}
-               {...props} />
+        <Route
+          key={key}
+          components={{ ...defaultComponents, ...components }}
+          {...props}
+        />
       );
     });
     return [...acc, ...pluginRoutes];
@@ -39,7 +40,10 @@ export function flattenPluginsSagas(
   }, []);
 }
 
-function extendReducer(firstReducer: Function, secondReducer: Function): Function {
+function extendReducer(
+  firstReducer: Function,
+  secondReducer: Function
+): Function {
   // Create a reducer that executes the first reducer and use its result to call
   // the second one
   return function extendedReducer(state, action) {
@@ -56,9 +60,9 @@ function extendReducers(pluginReducers, standardReducers) {
     // existing reducer with the plugin one
     return {
       ...acc,
-      [name]: standardReducers.hasOwnProperty(name) ?
-        extendReducer(standardReducer, pluginReducer) :
-        pluginReducer
+      [name]: standardReducers.hasOwnProperty(name)
+        ? extendReducer(standardReducer, pluginReducer)
+        : pluginReducer,
     };
   }, {});
 }
@@ -70,8 +74,11 @@ export function flattenPluginsReducers(
   // standardReducers contain the kinto-admin core reducers; each plugin
   // will extend their reducers against these, so a plugin will never extend
   // another plugin reducer.
-  return pluginsReducers.reduce((acc, pluginReducers = {}) => ({
-    ...acc,
-    ...extendReducers(pluginReducers, standardReducers)
-  }), {});
+  return pluginsReducers.reduce(
+    (acc, pluginReducers = {}) => ({
+      ...acc,
+      ...extendReducers(pluginReducers, standardReducers),
+    }),
+    {}
+  );
 }

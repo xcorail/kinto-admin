@@ -6,36 +6,56 @@ import type {
   RouteLocation,
 } from "../../types";
 
-import React, { Component } from "react";
+import React, { PureComponent } from "react";
 
-import Spinner from "../Spinner";
 import HistoryTable from "../HistoryTable";
 import CollectionTabs from "./GroupTabs";
 
+type Props = {
+  params: GroupRouteParams,
+  group: GroupState,
+  capabilities: Capabilities,
+  location: RouteLocation,
+  hasNextHistory: boolean,
+  listGroupNextHistory: ?Function,
+  notifyError: (message: string, error: ?Error) => void,
+};
 
-export default class GroupHistory extends Component {
-  props: {
-    params: GroupRouteParams,
-    group: GroupState,
-    capabilities: Capabilities,
-    location: RouteLocation,
-  };
-
+export default class GroupHistory extends PureComponent<Props> {
   render() {
-    const {params, group, capabilities, location} = this.props;
-    const {bid, gid} = params;
-    const {history, historyLoaded} = group;
+    const {
+      params,
+      group,
+      capabilities,
+      location,
+      listGroupNextHistory,
+      notifyError,
+    } = this.props;
+    const { bid, gid } = params;
+    const { history: { entries, loaded, hasNextPage } } = group;
 
     return (
       <div>
-        <h1>History for <b>{bid}/{gid}</b></h1>
+        <h1>
+          History for{" "}
+          <b>
+            {bid}/{gid}
+          </b>
+        </h1>
         <CollectionTabs
           bid={bid}
           gid={gid}
           selected="history"
           capabilities={capabilities}>
-          { !historyLoaded ? <Spinner /> :
-            <HistoryTable bid={bid} history={history} location={location} />}
+          <HistoryTable
+            bid={bid}
+            historyLoaded={loaded}
+            history={entries}
+            hasNextHistory={hasNextPage}
+            listNextHistory={listGroupNextHistory}
+            location={location}
+            notifyError={notifyError}
+          />
         </CollectionTabs>
       </div>
     );

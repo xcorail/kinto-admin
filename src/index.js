@@ -16,26 +16,23 @@ import "bootstrap/dist/css/bootstrap.css";
 import "codemirror/lib/codemirror.css";
 import "../css/styles.css";
 
-
 type Props = {
   plugins: Plugin[],
   settings: Object,
 };
 
-export default class KintoAdmin extends Component {
+export default class KintoAdmin extends Component<Props> {
   store: Object;
-
-  props: Props;
 
   static defaultProps = {
     plugins: [],
-  }
+  };
 
   constructor(props: Props) {
     super(props);
 
-    const {plugins, settings} = props;
-    this.store = configureStore({settings}, plugins);
+    const { plugins, settings } = props;
+    this.store = configureStore({ settings }, plugins);
     syncHistoryWithStore(hashHistory, this.store);
 
     // Restore saved session, if any
@@ -46,12 +43,12 @@ export default class KintoAdmin extends Component {
   }
 
   render() {
-    const {store} = this;
-    const {plugins} = this.props;
+    const { store } = this;
+    const { plugins } = this.props;
     const registerPlugins = plugins.map(plugin => plugin.register(store));
 
     function onRouteUpdate() {
-      const {params, location} = this.state;
+      const { params, location } = this.state;
       store.dispatch(routeActions.routeUpdated(params, location));
     }
 

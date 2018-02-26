@@ -11,7 +11,6 @@ import * as sessionActions from "../../src/actions/session";
 import * as bucketActions from "../../src/actions/bucket";
 import * as collectionActions from "../../src/actions/collection";
 
-
 function expectSagaCalled(saga, action) {
   // Note: the rootSaga function is called by configureStore
   configureStore().dispatch(action);
@@ -106,9 +105,16 @@ describe("root saga", () => {
       expectSagaCalled(saga, action);
     });
 
-    it("should watch for the listBucketHistory action", () => {
-      const saga = sandbox.stub(bucketSagas, "listBucketHistory");
+    it("should watch for the listHistory action", () => {
+      const saga = sandbox.stub(bucketSagas, "listHistory");
       const action = bucketActions.listBucketHistory();
+
+      expectSagaCalled(saga, action);
+    });
+
+    it("should watch for the listNextHistory action", () => {
+      const saga = sandbox.stub(bucketSagas, "listNextHistory");
+      const action = bucketActions.listBucketNextHistory();
 
       expectSagaCalled(saga, action);
     });
@@ -153,6 +159,20 @@ describe("root saga", () => {
     it("should watch for the bulkCreateRecords action", () => {
       const saga = sandbox.stub(collectionSagas, "bulkCreateRecords");
       const action = collectionActions.bulkCreateRecords();
+
+      expectSagaCalled(saga, action);
+    });
+
+    it("should watch for the listHistory action", () => {
+      const saga = sandbox.stub(collectionSagas, "listHistory");
+      const action = collectionActions.listCollectionHistory();
+
+      expectSagaCalled(saga, action);
+    });
+
+    it("should watch for the listNextHistory action", () => {
+      const saga = sandbox.stub(collectionSagas, "listNextHistory");
+      const action = collectionActions.listCollectionNextHistory();
 
       expectSagaCalled(saga, action);
     });

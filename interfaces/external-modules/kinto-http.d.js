@@ -33,31 +33,39 @@ declare module "kinto-http" {
     body: Object,
   };
 
+  declare type PermissionEntry = {
+    resource_name: "bucket" | "group" | "collection" | "record",
+    id: string,
+    bucket_id: string,
+    collection_id?: string,
+    permissions: string[],
+  };
+
   declare class KintoClient {
     remote: string;
     defaultReqOptions: {
       headers: Object
     };
-    constructor(): void;
-    bucket(): Bucket;
+    constructor(remote: string, options: Options): void;
+    bucket(bucketId: string): Bucket;
     createBucket(id: ?string, options?: Options): Promise<ObjectResponseBody<Resource>>;
     deleteBucket(id: string, options?: Options): Promise<ObjectResponseBody<Resource>>;
     batch(): Promise<BatchResponse[]>;
     fetchServerInfo(): Promise<Object>;
     listBuckets(): Promise<ListResponseBody<Resource>>;
-    listPermissions(): Promise<ListResponseBody<Object>>;
+    listPermissions(): Promise<ListResponseBody<PermissionEntry>>;
   }
 
   declare class Bucket {
     constructor(): void;
-    collection(): Collection;
+    collection(collectionId: string): Collection;
     setData(): Promise<*>;
     setPermissions(permissions: Permissions): Promise<ObjectResponseBody<Resource>>;
     createCollection(id: ?string, options?: Options): Promise<ObjectResponseBody<Resource>>;
     deleteCollection(id: string, options?: Options): Promise<ObjectResponseBody<Resource>>;
     listCollections(options?: Options): Promise<ListResponseBody<Resource>>;
     setData(data: Object, options?: Options): Promise<Object>,
-    listHistory(): Promise<ListResponseBody<Object>>;
+    listHistory(options: Object): Promise<ListResponseBody<Object>>;
     createGroup(id: ?string, members: string[], options?: Options): Promise<ObjectResponseBody<Resource>>;
     updateGroup(group: Object, options?: Options): Promise<ObjectResponseBody<Resource>>;
     deleteGroup(id: string, options?: Options): Promise<ObjectResponseBody<Resource>>;
@@ -68,7 +76,7 @@ declare module "kinto-http" {
     setData(data: Object, options?: Options): Promise<Object>;
     setPermissions(permissions: Permissions): Promise<ObjectResponseBody<Resource>>;
     removeAttachment(): Promise<ObjectResponseBody<Resource>>;
-    listRecords(): Promise<ListResponseBody<Resource>>;
+    listRecords(options: Object): Promise<ListResponseBody<Resource>>;
     addAttachment(attachment: string, record: Object, options?: Options): Promise<ObjectResponseBody<Resource>>;
     createRecord(record: Object, options?: Options): Promise<ObjectResponseBody<Resource>>;
     updateRecord(record: Object, options?: Options): Promise<ObjectResponseBody<Resource>>;

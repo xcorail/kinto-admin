@@ -1,5 +1,7 @@
 # Kinto Web Administration Console
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/Kinto/kinto-admin.svg)](https://greenkeeper.io/)
+
 [![Build Status](https://travis-ci.org/Kinto/kinto-admin.svg?branch=master)](https://travis-ci.org/Kinto/kinto-admin)
 
 A Web admin UI to manage data from a [Kinto](https://kinto.readthedocs.io/) server. [Demo](http://kinto.github.io/kinto-admin/).
@@ -31,6 +33,11 @@ Kinto-based systems.
 
 NodeJS v4+ and npm 2.14+ should be installed and available on your machine.
 
+Various pre-commit hooks are available to help prevent you from
+pushing sub-optimal code; to use these, ``pip install --user
+pre-commit`` and ``pre-commit install``. (If you have a
+``.git/hooks/pre-commit.legacy``, you can remove it.)
+
 ## Installation
 
 The easiest way to get started is to install [create-react-app](https://github.com/facebookincubator/create-react-app) first:
@@ -43,17 +50,15 @@ $ npm install kinto-admin --save-dev
 
 Then, import and render the main `KintoAdmin` component in the generated `src/index.js` file:
 
-```jsx
-import React from "react";
-import ReactDOM from "react-dom";
+```diff
+ import App from './App';
+ import registerServiceWorker from './registerServiceWorker';
 
-import KintoAdmin from "kinto-admin";
-
-ReactDOM.render(
-  <KintoAdmin />,
-  document.getElementById("root")
-);
-
+-ReactDOM.render(<App />, document.getElementById('root'));
++import KintoAdmin from "kinto-admin";
++
++ReactDOM.render(<KintoAdmin />, document.getElementById('root'));
+ registerServiceWorker();
 ```
 
 To run a local development server:
@@ -77,6 +82,7 @@ The `KintoAdmin` component accepts a `settings` prop, where you can define the f
 - `maxPerPage`: The max number of results per page in lists (default: `200`).
 - `singleServer`: The server URL to be used (default: `null`). This removes the ability to connect to multiple servers.
 - `authMethods`: The list of supported authenticated methods (default: `["basicauth", "ldap", "fxa"]`). The first is the default one.
+- `sidebarMaxListedCollections`: The maximum number of bucket collections entries to list in the sidebar.
 
 Example:
 

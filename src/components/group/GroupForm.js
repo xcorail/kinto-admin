@@ -6,15 +6,14 @@ import type {
   GroupData,
 } from "../../types";
 
-import React, { Component } from "react";
-import Form from "react-jsonschema-form";
+import React, { PureComponent } from "react";
 
+import BaseForm from "../BaseForm";
 import AdminLink from "../AdminLink";
 import JSONEditor from "../JSONEditor";
 import { canCreateGroup, canEditGroup } from "../../permission";
 import { validJSON, omit } from "../../utils";
 import Spinner from "../Spinner";
-
 
 const schema = {
   type: "object",
@@ -27,7 +26,7 @@ const schema = {
     },
     members: {
       type: "array",
-      items: { "type": "string" },
+      items: { type: "string" },
       uniqueItems: true,
       default: [],
     },
@@ -36,7 +35,7 @@ const schema = {
       title: "Group metadata (JSON)",
       default: "{}",
     },
-  }
+  },
 };
 
 const uiSchema = {
@@ -50,14 +49,14 @@ const deleteSchema = {
   title: "Please enter the group id to delete as a confirmation",
 };
 
-function validate({data}, errors) {
+function validate({ data }, errors) {
   if (!validJSON(data)) {
     errors.data.addError("Invalid JSON.");
   }
   return errors;
 }
 
-function DeleteForm({gid, onSubmit}) {
+function DeleteForm({ gid, onSubmit }) {
   const validate = (formData, errors) => {
     if (formData !== gid) {
       errors.addError("The group id does not match.");
@@ -73,106 +72,121 @@ function DeleteForm({gid, onSubmit}) {
         <p>
           Delete the <b>{gid}</b> group.
         </p>
-        <Form
+        <BaseForm
           schema={deleteSchema}
           validate={validate}
-          onSubmit={({formData}) => {
+          onSubmit={({ formData }) => {
             if (typeof onSubmit === "function") {
               onSubmit(formData);
             }
           }}>
           <button type="submit" className="btn btn-danger">
-            <i className="glyphicon glyphicon-trash"/>{" "}
-            Delete group
+            <i className="glyphicon glyphicon-trash" /> Delete group
           </button>
-        </Form>
+        </BaseForm>
       </div>
     </div>
   );
 }
 
-export default class GroupForm extends Component {
-  props: {
-    gid?: string,
-    session: SessionState,
-    bucket: BucketState,
-    group: GroupState,
-    formData?: GroupData,
-    onSubmit: (formData: GroupData) => void,
-    deleteGroup?: (gid: string) => void,
-  };
+type Props = {
+  gid?: string,
+  session: SessionState,
+  bucket: BucketState,
+  group: GroupState,
+  formData?: GroupData,
+  onSubmit: (formData: GroupData) => void,
+  deleteGroup?: (gid: string) => void,
+};
 
-  onSubmit = ({formData}: {formData: {data: string}}) => {
-    const {data} = formData;
+export default class GroupForm extends PureComponent<Props> {
+  onSubmit = ({ formData }: { formData: { data: string } }) => {
+    const { data } = formData;
     // Parse JSON fields so they can be sent to the server
     const attributes = JSON.parse(data);
     this.props.onSubmit({
       ...omit(formData, ["data"]),
-      ...attributes
+      // #273: Ensure omitting "members" value from entered JSON data so we
+      // don't override the ones entered in the dedicated field
+      ...omit(attributes, ["members"]),
     });
-  }
+  };
 
   render() {
-    const {gid, session, bucket, group, formData={}, deleteGroup} = this.props;
+    const {
+      gid,
+      session,
+      bucket,
+      group,
+      formData = {},
+      deleteGroup,
+    } = this.props;
     const creation = !formData.id;
-    const hasWriteAccess = creation ? canCreateGroup(session, bucket)
-                                    : canEditGroup(session, bucket, group);
+    const hasWriteAccess = creation
+      ? canCreateGroup(session, bucket)
+      : canEditGroup(session, bucket, group);
     const formIsEditable = creation || hasWriteAccess;
     const showDeleteForm = !creation && hasWriteAccess;
 
     // Disable edition of the group id
-    const _uiSchema = creation ? uiSchema : {
-      ...uiSchema,
-      id: {
-        "ui:readonly": true,
-      }
-    };
+    const _uiSchema = creation
+      ? uiSchema
+      : {
+          ...uiSchema,
+          id: {
+            "ui:readonly": true,
+          },
+        };
 
     const attributes = omit(formData, ["id", "last_modified", "members"]);
     // Stringify JSON fields so they're editable in a text field
     const data = JSON.stringify(attributes, null, 2);
     const formDataSerialized = {
       ...formData,
-      data
+      data,
     };
 
-    const alert = formIsEditable || group.busy ? null : (
-      <div className="alert alert-warning">
-        You don't have the required permission to edit this group.
-      </div>
-    );
+    const alert =
+      formIsEditable || group.busy ? null : (
+        <div className="alert alert-warning">
+          You don't have the required permission to edit this group.
+        </div>
+      );
 
     const buttons = (
       <div>
-        <button type="submit" disabled={!formIsEditable}
+        <button
+          type="submit"
+          disabled={!formIsEditable}
           className="btn btn-primary">
-          <i className="glyphicon glyphicon-ok"/>
+          <i className="glyphicon glyphicon-ok" />
           {` ${creation ? "Create" : "Update"} group`}
         </button>
         {" or "}
-        <AdminLink name="home" params={{}}>Cancel</AdminLink>
+        <AdminLink name="home" params={{}}>
+          Cancel
+        </AdminLink>
       </div>
     );
 
     return (
       <div>
         {alert}
-        {group.busy ?
-          <Spinner/> :
-          <Form
+        {group.busy ? (
+          <Spinner />
+        ) : (
+          <BaseForm
             schema={schema}
-            uiSchema={formIsEditable ? _uiSchema :
-                        {..._uiSchema, "ui:readonly": true}}
+            uiSchema={
+              formIsEditable ? _uiSchema : { ..._uiSchema, "ui:readonly": true }
+            }
             formData={formDataSerialized}
             validate={validate}
             onSubmit={this.onSubmit}>
             {buttons}
-          </Form>
-            }
-        {showDeleteForm ?
-          <DeleteForm
-            gid={gid}
-            onSubmit={deleteGroup} /> : null}
+          </BaseForm>
+        )}
+        {showDeleteForm && <DeleteForm gid={gid} onSubmit={deleteGroup} />}
       </div>
     );
   }

@@ -2,21 +2,18 @@ import { expect } from "chai";
 import { put, call } from "redux-saga/effects";
 
 import { notifyError, notifySuccess } from "../../src/actions/notifications";
-import * as collectionActions from "../../src/actions/collection";
+import * as actions from "../../src/actions/collection";
 import * as recordActions from "../../src/actions/record";
 import { redirectTo } from "../../src/actions/route";
 import * as saga from "../../src/sagas/collection";
 import { setClient } from "../../src/client";
+import { scrollToBottom } from "../../src/utils";
 
-
-const record = {id: 1, foo: "bar1"};
-const record2 = {id: 2, foo: "bar2"};
-const records = [
-  record,
-  record2,
-];
+const record = { id: 1, foo: "bar1" };
+const record2 = { id: 2, foo: "bar2" };
+const records = [record, record2];
 const recordsWithAttachment = [
-  {...record, __attachment__: "fake-attachment"},
+  { ...record, __attachment__: "fake-attachment" },
   record2,
 ];
 
@@ -30,28 +27,44 @@ describe("collection sagas", () => {
       let collection;
 
       before(() => {
-        collection = {listRecords() {}};
-        const bucket = {collection() {return collection;}};
-        setClient({bucket() {return bucket;}});
+        collection = { listRecords() {} };
+        const bucket = {
+          collection() {
+            return collection;
+          },
+        };
+        setClient({
+          bucket() {
+            return bucket;
+          },
+        });
       });
 
       describe("Default sort", () => {
         let listRecords;
 
         before(() => {
-          const action = collectionActions.listRecords("bucket", "collection");
-          const getState = () => ({settings, collection: {data: {sort: "-last_modified"}}});
+          const action = actions.listRecords("bucket", "collection");
+          const getState = () => ({
+            settings,
+            collection: { data: { sort: "-last_modified" } },
+          });
           listRecords = saga.listRecords(getState, action);
         });
 
         it("should list collection records", () => {
-          expect(listRecords.next().value)
-            .eql(call([collection, collection.listRecords], {sort: "-last_modified", limit: 42}));
+          expect(listRecords.next().value).eql(
+            call([collection, collection.listRecords], {
+              sort: "-last_modified",
+              limit: 42,
+            })
+          );
         });
 
         it("should dispatch the listRecordsSuccess action", () => {
-          expect(listRecords.next({data: records}).value)
-            .eql(put(collectionActions.listRecordsSuccess(records)));
+          expect(listRecords.next({ data: records }).value).eql(
+            put(actions.listRecordsSuccess(records))
+          );
         });
       });
 
@@ -59,19 +72,27 @@ describe("collection sagas", () => {
         let listRecords;
 
         before(() => {
-          const action = collectionActions.listRecords("bucket", "collection");
-          const getState = () => ({settings, collection: {currentSort: "title", data: {sort: "nope"}}});
+          const action = actions.listRecords("bucket", "collection");
+          const getState = () => ({
+            settings,
+            collection: { currentSort: "title", data: { sort: "nope" } },
+          });
           listRecords = saga.listRecords(getState, action);
         });
 
         it("should list collection records", () => {
-          expect(listRecords.next().value)
-            .eql(call([collection, collection.listRecords], {sort: "title", limit: 42}));
+          expect(listRecords.next().value).eql(
+            call([collection, collection.listRecords], {
+              sort: "title",
+              limit: 42,
+            })
+          );
         });
 
         it("should dispatch the listRecordsSuccess action", () => {
-          expect(listRecords.next({data: records}).value)
-            .eql(put(collectionActions.listRecordsSuccess(records)));
+          expect(listRecords.next({ data: records }).value).eql(
+            put(actions.listRecordsSuccess(records))
+          );
         });
       });
 
@@ -79,19 +100,27 @@ describe("collection sagas", () => {
         let listRecords;
 
         before(() => {
-          const action = collectionActions.listRecords("bucket", "collection", "title");
-          const getState = () => ({settings, collection: {currentSort: "nope", data: {sort: "nope"}}});
+          const action = actions.listRecords("bucket", "collection", "title");
+          const getState = () => ({
+            settings,
+            collection: { currentSort: "nope", data: { sort: "nope" } },
+          });
           listRecords = saga.listRecords(getState, action);
         });
 
         it("should list collection records", () => {
-          expect(listRecords.next().value)
-            .eql(call([collection, collection.listRecords], {sort: "title", limit: 42}));
+          expect(listRecords.next().value).eql(
+            call([collection, collection.listRecords], {
+              sort: "title",
+              limit: 42,
+            })
+          );
         });
 
         it("should dispatch the listRecordsSuccess action", () => {
-          expect(listRecords.next({data: records}).value)
-            .eql(put(collectionActions.listRecordsSuccess(records)));
+          expect(listRecords.next({ data: records }).value).eql(
+            put(actions.listRecordsSuccess(records))
+          );
         });
       });
     });
@@ -100,18 +129,30 @@ describe("collection sagas", () => {
       let listRecords, collection;
 
       before(() => {
-        collection = {listRecords() {}};
-        const bucket = {collection() {return collection;}};
-        setClient({bucket() {return bucket;}});
-        const getState = () => ({settings, collection: {data: {sort: "nope"}}});
-        const action = collectionActions.listRecords("bucket", "collection");
+        collection = { listRecords() {} };
+        const bucket = {
+          collection() {
+            return collection;
+          },
+        };
+        setClient({
+          bucket() {
+            return bucket;
+          },
+        });
+        const getState = () => ({
+          settings,
+          collection: { data: { sort: "nope" } },
+        });
+        const action = actions.listRecords("bucket", "collection");
         listRecords = saga.listRecords(getState, action);
         listRecords.next();
       });
 
       it("should dispatch an error notification action", () => {
-        expect(listRecords.throw("error").value)
-          .eql(put(notifyError("Couldn't list records.", "error")));
+        expect(listRecords.throw("error").value).eql(
+          put(notifyError("Couldn't list records.", "error"))
+        );
       });
     });
   });
@@ -121,28 +162,28 @@ describe("collection sagas", () => {
       let listNextRecords, collection;
 
       before(() => {
-        const action = collectionActions.listNextRecords();
-        collection = {listNextRecords() {}};
-        const getState = () => ({settings, collection});
+        const action = actions.listNextRecords();
+        collection = { listNextRecords() {} };
+        const getState = () => ({ settings, collection });
         listNextRecords = saga.listNextRecords(getState, action);
       });
 
       it("should list collection records", () => {
-        expect(listNextRecords.next().value)
-          .eql(call(collection.listNextRecords));
+        expect(listNextRecords.next().value).eql(
+          call(collection.listNextRecords)
+        );
       });
 
       it("should dispatch the listNextRecordsSuccess action", () => {
         const fakeNext = () => {};
-        const result = {data: records, hasNextPage: false, next: fakeNext};
-        expect(listNextRecords.next(result).value)
-          .eql(put(collectionActions.listRecordsSuccess(records, false, fakeNext)));
+        const result = { data: records, hasNextPage: false, next: fakeNext };
+        expect(listNextRecords.next(result).value).eql(
+          put(actions.listRecordsSuccess(records, false, fakeNext))
+        );
       });
 
       it("should scroll to page bottom", () => {
-        window.document.body.scrollHeight = 42;
-        expect(listNextRecords.next().value)
-          .eql(call([window, window.scrollTo], 0, 42));
+        expect(listNextRecords.next().value).eql(call(scrollToBottom));
       });
     });
 
@@ -150,16 +191,17 @@ describe("collection sagas", () => {
       let listNextRecords, collection;
 
       before(() => {
-        const action = collectionActions.listNextRecords();
-        collection = {listNextRecords() {}};
-        const getState = () => ({settings, collection});
+        const action = actions.listNextRecords();
+        collection = { listNextRecords() {} };
+        const getState = () => ({ settings, collection });
         listNextRecords = saga.listNextRecords(getState, action);
         listNextRecords.next();
       });
 
       it("should dispatch an error notification action", () => {
-        expect(listNextRecords.throw("error").value)
-          .eql(put(notifyError("Couldn't process next page.", "error")));
+        expect(listNextRecords.throw("error").value).eql(
+          put(notifyError("Couldn't process next page.", "error"))
+        );
       });
     });
   });
@@ -172,8 +214,16 @@ describe("collection sagas", () => {
         createRecord() {},
         addAttachment() {},
       };
-      const bucket = {collection() {return collection;}};
-      setClient({bucket() {return bucket;}});
+      const bucket = {
+        collection() {
+          return collection;
+        },
+      };
+      setClient({
+        bucket() {
+          return bucket;
+        },
+      });
     });
 
     describe("Attachments disabled", () => {
@@ -184,35 +234,41 @@ describe("collection sagas", () => {
           settings,
           session: {
             serverInfo: {
-              capabilities: {}
-            }
-          }
+              capabilities: {},
+            },
+          },
         });
-        const action = collectionActions.createRecord("bucket", "collection", record);
+        const action = actions.createRecord("bucket", "collection", record);
         createRecord = saga.createRecord(getState, action);
       });
 
       it("should create the record", () => {
-        expect(createRecord.next().value)
-          .eql(call([collection, collection.createRecord], record, {safe: true}));
+        expect(createRecord.next().value).eql(
+          call([collection, collection.createRecord], record, { safe: true })
+        );
       });
 
       it("should update the route path", () => {
-        expect(createRecord.next().value)
-          .eql(put(redirectTo("collection:records", {
-            bid: "bucket",
-            cid: "collection",
-          })));
+        expect(createRecord.next().value).eql(
+          put(
+            redirectTo("collection:records", {
+              bid: "bucket",
+              cid: "collection",
+            })
+          )
+        );
       });
 
       it("should dispatch a notification", () => {
-        expect(createRecord.next().value)
-          .eql(put(notifySuccess("Record added.")));
+        expect(createRecord.next().value).eql(
+          put(notifySuccess("Record added."))
+        );
       });
 
       it("should unmark the current record as busy", () => {
-        expect(createRecord.next().value)
-          .eql(put(recordActions.recordBusy(false)));
+        expect(createRecord.next().value).eql(
+          put(recordActions.recordBusy(false))
+        );
       });
     });
 
@@ -226,36 +282,117 @@ describe("collection sagas", () => {
           settings,
           session: {
             serverInfo: {
-              capabilities: {attachments: {}}
-            }
-          }
+              capabilities: { attachments: {} },
+            },
+          },
+          collection: {},
         });
-        const action = collectionActions.createRecord(
-          "bucket", "collection", record, attachment);
+        const action = actions.createRecord(
+          "bucket",
+          "collection",
+          record,
+          attachment
+        );
         createRecord = saga.createRecord(getState, action);
       });
 
       it("should post the attachment", () => {
-        expect(createRecord.next().value)
-          .eql(call([collection, collection.addAttachment], attachment, record, {safe: true}));
+        expect(createRecord.next().value).eql(
+          call([collection, collection.addAttachment], attachment, record, {
+            safe: true,
+          })
+        );
       });
 
       it("should update the route path", () => {
-        expect(createRecord.next().value)
-          .eql(put(redirectTo("collection:records", {
-            bid: "bucket",
-            cid: "collection",
-          })));
+        expect(createRecord.next().value).eql(
+          put(
+            redirectTo("collection:records", {
+              bid: "bucket",
+              cid: "collection",
+            })
+          )
+        );
       });
 
       it("should dispatch a notification", () => {
-        expect(createRecord.next().value)
-          .eql(put(notifySuccess("Record added.")));
+        expect(createRecord.next().value).eql(
+          put(notifySuccess("Record added."))
+        );
       });
 
       it("should unmark the current record as busy", () => {
-        expect(createRecord.next().value)
-          .eql(put(recordActions.recordBusy(false)));
+        expect(createRecord.next().value).eql(
+          put(recordActions.recordBusy(false))
+        );
+      });
+    });
+
+    describe("Attachments enabled with gzip set to false", () => {
+      let createRecord;
+
+      const attachment = "data:test/fake";
+
+      before(() => {
+        const getState = () => ({
+          settings,
+          session: {
+            serverInfo: {
+              capabilities: { attachments: {} },
+            },
+          },
+          collection: { data: { attachment: { gzipped: false } } },
+        });
+        const action = actions.createRecord(
+          "bucket",
+          "collection",
+          record,
+          attachment
+        );
+        createRecord = saga.createRecord(getState, action);
+      });
+
+      it("should post the attachment", () => {
+        expect(createRecord.next().value).eql(
+          call([collection, collection.addAttachment], attachment, record, {
+            safe: true,
+            gzipped: false,
+          })
+        );
+      });
+    });
+
+    describe("Attachments enabled with gzip set to true", () => {
+      let createRecord;
+
+      const attachment = "data:test/fake";
+
+      before(() => {
+        const getState = () => ({
+          settings,
+          session: {
+            serverInfo: {
+              capabilities: { attachments: {} },
+            },
+          },
+          collection: { data: { attachment: { gzipped: true } } },
+        });
+        const action = actions.createRecord(
+          "bucket",
+          "collection",
+          record,
+          attachment
+        );
+        createRecord = saga.createRecord(getState, action);
+      });
+
+      it("should post the attachment", () => {
+        expect(createRecord.next().value).eql(
+          call([collection, collection.addAttachment], attachment, record, {
+            safe: true,
+            gzipped: true,
+          })
+        );
       });
     });
 
@@ -263,20 +400,25 @@ describe("collection sagas", () => {
       let createRecord;
 
       before(() => {
-        const getState = () => ({settings, session: {serverInfo: {capabilities: {}}}});
-        const action = collectionActions.createRecord("bucket", "collection", record);
+        const getState = () => ({
+          settings,
+          session: { serverInfo: { capabilities: {} } },
+        });
+        const action = actions.createRecord("bucket", "collection", record);
         createRecord = saga.createRecord(getState, action);
         createRecord.next();
       });
 
       it("should dispatch an error notification action", () => {
-        expect(createRecord.throw("error").value)
-          .eql(put(notifyError("Couldn't create record.", "error")));
+        expect(createRecord.throw("error").value).eql(
+          put(notifyError("Couldn't create record.", "error"))
+        );
       });
 
       it("should unmark the current record as busy", () => {
-        expect(createRecord.next().value)
-          .eql(put(recordActions.recordBusy(false)));
+        expect(createRecord.next().value).eql(
+          put(recordActions.recordBusy(false))
+        );
       });
     });
   });
@@ -288,126 +430,162 @@ describe("collection sagas", () => {
         return {
           session: {
             serverInfo: {
-              capabilities: {}
-            }
+              capabilities: {},
+            },
           },
           record: {
             data: {
               ...record,
-              last_modified: 42
-            }
-          }
+              last_modified: 42,
+            },
+          },
         };
       };
 
       describe("Success, attributes", () => {
         let collection, updateRecord;
 
-        const action = collectionActions.updateRecord("bucket", "collection", 1, {
+        const action = actions.updateRecord("bucket", "collection", 1, {
           data: {
             ...record,
             last_modified: 42,
-          }
+          },
         });
 
         before(() => {
-          collection = {updateRecord() {}};
-          const bucket = {collection() {return collection;}};
-          setClient({bucket() {return bucket;}});
+          collection = { updateRecord() {} };
+          const bucket = {
+            collection() {
+              return collection;
+            },
+          };
+          setClient({
+            bucket() {
+              return bucket;
+            },
+          });
           updateRecord = saga.updateRecord(getState, action);
         });
 
         it("should update the record", () => {
-          expect(updateRecord.next().value)
-            .eql(call([collection, collection.updateRecord], {
-              ...record,
-              last_modified: 42
-            }, {
-              patch: true,
-              safe: true
-            }));
+          expect(updateRecord.next().value).eql(
+            call(
+              [collection, collection.updateRecord],
+              {
+                ...record,
+                last_modified: 42,
+              },
+              {
+                safe: true,
+              }
+            )
+          );
         });
 
         it("should dispatch the resetRecord action", () => {
-          expect(updateRecord.next({data: record}).value)
-            .eql(put(recordActions.resetRecord()));
+          expect(updateRecord.next({ data: record }).value).eql(
+            put(recordActions.resetRecord())
+          );
         });
 
         it("should update the route path", () => {
-          expect(updateRecord.next().value)
-            .eql(put(redirectTo("collection:records", {
-              bid: "bucket",
-              cid: "collection",
-            })));
+          expect(updateRecord.next().value).eql(
+            put(
+              redirectTo("collection:records", {
+                bid: "bucket",
+                cid: "collection",
+              })
+            )
+          );
         });
 
         it("should dispatch a notification", () => {
-          expect(updateRecord.next().value)
-            .eql(put(notifySuccess("Record attributes updated.")));
+          expect(updateRecord.next().value).eql(
+            put(notifySuccess("Record attributes updated."))
+          );
         });
 
         it("should unmark the current record as busy", () => {
-          expect(updateRecord.next().value)
-            .eql(put(recordActions.recordBusy(false)));
+          expect(updateRecord.next().value).eql(
+            put(recordActions.recordBusy(false))
+          );
         });
       });
 
       describe("Success, permissions", () => {
         let collection, updateRecord;
 
-        const permissions = {a: 1};
+        const permissions = { a: 1 };
 
-        const action = collectionActions.updateRecord("bucket", "collection", 1, {
-          permissions
+        const action = actions.updateRecord("bucket", "collection", 1, {
+          permissions,
         });
 
         before(() => {
-          collection = {updateRecord() {}};
-          const bucket = {collection() {return collection;}};
-          setClient({bucket() {return bucket;}});
+          collection = { updateRecord() {} };
+          const bucket = {
+            collection() {
+              return collection;
+            },
+          };
+          setClient({
+            bucket() {
+              return bucket;
+            },
+          });
           updateRecord = saga.updateRecord(getState, action);
         });
 
         it("should update the record", () => {
-          expect(updateRecord.next().value)
-            .eql(call([collection, collection.updateRecord], {
-              ...record,
-              last_modified: 42,
-            }, {
-              permissions,
-              last_modified: 42,
-              safe: true,
-            }));
+          expect(updateRecord.next().value).eql(
+            call(
+              [collection, collection.updateRecord],
+              {
+                ...record,
+                last_modified: 42,
+              },
+              {
+                permissions,
+                last_modified: 42,
+                safe: true,
+              }
+            )
+          );
         });
 
         it("should update the route path", () => {
-          expect(updateRecord.next().value)
-            .eql(put(redirectTo("record:permissions", {
-              bid: "bucket",
-              cid: "collection",
-              rid: 1,
-            })));
+          expect(updateRecord.next().value).eql(
+            put(
+              redirectTo("record:permissions", {
+                bid: "bucket",
+                cid: "collection",
+                rid: 1,
+              })
+            )
+          );
         });
 
         it("should dispatch a notification", () => {
-          expect(updateRecord.next().value)
-            .eql(put(notifySuccess("Record permissions updated.")));
+          expect(updateRecord.next().value).eql(
+            put(notifySuccess("Record permissions updated."))
+          );
         });
 
         it("should unmark the current record as busy", () => {
-          expect(updateRecord.next().value)
-            .eql(put(recordActions.recordBusy(false)));
+          expect(updateRecord.next().value).eql(
+            put(recordActions.recordBusy(false))
+          );
         });
       });
 
       describe("Failure", () => {
         let updateRecord;
 
-        const action = collectionActions.updateRecord("bucket", "collection", 1, {
+        const action = actions.updateRecord("bucket", "collection", 1, {
           data: {
             ...record,
             last_modified: 42,
-          }
+          },
         });
 
         before(() => {
@@ -416,13 +594,15 @@ describe("collection sagas", () => {
         });
 
         it("should dispatch an error notification action", () => {
-          expect(updateRecord.throw("error").value)
-            .eql(put(notifyError("Couldn't update record.", "error")));
+          expect(updateRecord.throw("error").value).eql(
+            put(notifyError("Couldn't update record.", "error"))
+          );
         });
 
         it("should unmark the current record as busy", () => {
-          expect(updateRecord.next().value)
-            .eql(put(recordActions.recordBusy(false)));
+          expect(updateRecord.next().value).eql(
+            put(recordActions.recordBusy(false))
+          );
         });
       });
     });
@@ -431,27 +611,34 @@ describe("collection sagas", () => {
       // Expose the attachment capability in server info state
       const getState = () => {
         return {
+          collection: { data: {} },
           session: {
             serverInfo: {
               capabilities: {
-                attachments: {}
-              }
-            }
+                attachments: {},
+              },
+            },
           },
           record: {
-            data: {last_modified: 42}
-          }
+            data: { last_modified: 42 },
+          },
         };
       };
 
       const attachment = "data:test/fake";
 
-      const action = collectionActions.updateRecord("bucket", "collection", 1, {
-        data: {
-          ...record,
-          last_modified: 42,
-        }
-      }, attachment);
+      const action = actions.updateRecord(
+        "bucket",
+        "collection",
+        1,
+        {
+          data: {
+            ...record,
+            last_modified: 42,
+          },
+        },
+        attachment
+      );
 
       describe("Success", () => {
         let collection, updateRecord;
@@ -461,40 +648,162 @@ describe("collection sagas", () => {
             updateRecord() {},
             addAttachment() {},
           };
-          const bucket = {collection() {return collection;}};
-          setClient({bucket() {return bucket;}});
+          const bucket = {
+            collection() {
+              return collection;
+            },
+          };
+          setClient({
+            bucket() {
+              return bucket;
+            },
+          });
           updateRecord = saga.updateRecord(getState, action);
         });
 
         it("should update the record with its attachment", () => {
-          expect(updateRecord.next().value)
-            .eql(call([collection, collection.addAttachment], attachment, {
-              ...record,
-              last_modified: 42
-            }, {safe: true}));
+          expect(updateRecord.next().value).eql(
+            call(
+              [collection, collection.addAttachment],
+              attachment,
+              {
+                ...record,
+                last_modified: 42,
+              },
+              { safe: true }
+            )
+          );
         });
 
         it("should dispatch the resetRecord action", () => {
-          expect(updateRecord.next({data: record}).value)
-            .eql(put(recordActions.resetRecord()));
+          expect(updateRecord.next({ data: record }).value).eql(
+            put(recordActions.resetRecord())
+          );
         });
 
         it("should update the route path", () => {
-          expect(updateRecord.next().value)
-            .eql(put(redirectTo("collection:records", {
-              bid: "bucket",
-              cid: "collection",
-            })));
+          expect(updateRecord.next().value).eql(
+            put(
+              redirectTo("collection:records", {
+                bid: "bucket",
+                cid: "collection",
+              })
+            )
+          );
         });
 
         it("should dispatch a notification", () => {
-          expect(updateRecord.next().value)
-            .eql(put(notifySuccess("Record attributes updated.")));
+          expect(updateRecord.next().value).eql(
+            put(notifySuccess("Record attributes updated."))
+          );
         });
 
         it("should unmark the current record as busy", () => {
-          expect(updateRecord.next().value)
-            .eql(put(recordActions.recordBusy(false)));
+          expect(updateRecord.next().value).eql(
+            put(recordActions.recordBusy(false))
+          );
+        });
+      });
+
+      describe("Conf gzipped force enabled", () => {
+        let collection, updateRecord;
+
+        before(() => {
+          collection = {
+            updateRecord() {},
+            addAttachment() {},
+          };
+          const bucket = {
+            collection() {
+              return collection;
+            },
+          };
+          setClient({
+            bucket() {
+              return bucket;
+            },
+          });
+          const getState = function() {
+            return {
+              collection: { data: { attachment: { gzipped: true } } },
+              session: {
+                serverInfo: {
+                  capabilities: {
+                    attachments: {},
+                  },
+                },
+              },
+              record: {
+                data: { last_modified: 42 },
+              },
+            };
+          };
+          updateRecord = saga.updateRecord(getState, action);
+        });
+
+        it("should update the record with its attachment and force gzipped", () => {
+          expect(updateRecord.next().value).eql(
+            call(
+              [collection, collection.addAttachment],
+              attachment,
+              {
+                ...record,
+                last_modified: 42,
+              },
+              { safe: true, gzipped: true }
+            )
+          );
+        });
+      });
+
+      describe("Conf gzipped force disabled", () => {
+        let collection, updateRecord;
+
+        before(() => {
+          collection = {
+            updateRecord() {},
+            addAttachment() {},
+          };
+          const bucket = {
+            collection() {
+              return collection;
+            },
+          };
+          setClient({
+            bucket() {
+              return bucket;
+            },
+          });
+          const getState = function() {
+            return {
+              collection: { data: { attachment: { gzipped: false } } },
+              session: {
+                serverInfo: {
+                  capabilities: {
+                    attachments: {},
+                  },
+                },
+              },
+              record: {
+                data: { last_modified: 42 },
+              },
+            };
+          };
+          updateRecord = saga.updateRecord(getState, action);
+        });
+
+        it("should update the record with its attachment and force gzipped", () => {
+          expect(updateRecord.next().value).eql(
+            call(
+              [collection, collection.addAttachment],
+              attachment,
+              {
+                ...record,
+                last_modified: 42,
+              },
+              { safe: true, gzipped: false }
+            )
+          );
         });
       });
 
@@ -507,13 +816,15 @@ describe("collection sagas", () => {
         });
 
         it("should dispatch an error notification action", () => {
-          expect(updateRecord.throw("error").value)
-            .eql(put(notifyError("Couldn't update record.", "error")));
+          expect(updateRecord.throw("error").value).eql(
+            put(notifyError("Couldn't update record.", "error"))
+          );
         });
 
         it("should unmark the current record as busy", () => {
-          expect(updateRecord.next().value)
-            .eql(put(recordActions.recordBusy(false)));
+          expect(updateRecord.next().value).eql(
+            put(recordActions.recordBusy(false))
+          );
         });
       });
     });
@@ -524,47 +835,69 @@ describe("collection sagas", () => {
       let collection, deleteRecord;
 
       before(() => {
-        collection = {deleteRecord() {}};
-        const bucket = {collection() {return collection;}};
-        setClient({bucket() {return bucket;}});
-        const action = collectionActions.deleteRecord("bucket", "collection", 1);
-        deleteRecord = saga.deleteRecord(() => ({
-          record: {
-            data: {last_modified: 42}
-          }
-        }), action);
+        collection = { deleteRecord() {} };
+        const bucket = {
+          collection() {
+            return collection;
+          },
+        };
+        setClient({
+          bucket() {
+            return bucket;
+          },
+        });
+        const action = actions.deleteRecord("bucket", "collection", 1);
+        deleteRecord = saga.deleteRecord(
+          () => ({
+            record: {
+              data: { last_modified: 42 },
+            },
+          }),
+          action
+        );
       });
 
       it("should delete the record", () => {
-        expect(deleteRecord.next().value)
-          .eql(call([collection, collection.deleteRecord], 1, {
-            safe: true, last_modified: 42}));
+        expect(deleteRecord.next().value).eql(
+          call([collection, collection.deleteRecord], 1, {
+            safe: true,
+            last_modified: 42,
+          })
+        );
       });
 
       it("should accept it from the action too", () => {
-        const action = collectionActions.deleteRecord("bucket", "collection", 1, 43);
+        const action = actions.deleteRecord("bucket", "collection", 1, 43);
         const deleteSaga = saga.deleteRecord(() => ({}), action);
-        expect(deleteSaga.next().value)
-          .eql(call([collection, collection.deleteRecord], 1, {
-            safe: true, last_modified: 43}));
+        expect(deleteSaga.next().value).eql(
+          call([collection, collection.deleteRecord], 1, {
+            safe: true,
+            last_modified: 43,
+          })
+        );
       });
 
       it("should update the route path", () => {
-        expect(deleteRecord.next().value)
-          .eql(put(redirectTo("collection:records", {
-            bid: "bucket",
-            cid: "collection",
-          })));
+        expect(deleteRecord.next().value).eql(
+          put(
+            redirectTo("collection:records", {
+              bid: "bucket",
+              cid: "collection",
+            })
+          )
+        );
       });
 
       it("should dispatch a notification", () => {
-        expect(deleteRecord.next().value)
-          .eql(put(notifySuccess("Record deleted.")));
+        expect(deleteRecord.next().value).eql(
+          put(notifySuccess("Record deleted."))
+        );
       });
 
       it("should unmark the current record as busy", () => {
-        expect(deleteRecord.next().value)
-          .eql(put(recordActions.recordBusy(false)));
+        expect(deleteRecord.next().value).eql(
+          put(recordActions.recordBusy(false))
+        );
       });
     });
 
@@ -572,21 +905,26 @@ describe("collection sagas", () => {
       let deleteRecord;
 
       before(() => {
-        const action = collectionActions.deleteRecord("bucket", "collection", 1);
-        deleteRecord = saga.deleteRecord(() => ({
-          record: {data: {}}
-        }), action);
+        const action = actions.deleteRecord("bucket", "collection", 1);
+        deleteRecord = saga.deleteRecord(
+          () => ({
+            record: { data: {} },
+          }),
+          action
+        );
         deleteRecord.next();
       });
 
       it("should dispatch an error notification action", () => {
-        expect(deleteRecord.throw("error").value)
-          .eql(put(notifyError("Couldn't delete record.", "error")));
+        expect(deleteRecord.throw("error").value).eql(
+          put(notifyError("Couldn't delete record.", "error"))
+        );
       });
 
       it("should unmark the current record as busy", () => {
-        expect(deleteRecord.next().value)
-          .eql(put(recordActions.recordBusy(false)));
+        expect(deleteRecord.next().value).eql(
+          put(recordActions.recordBusy(false))
+        );
       });
     });
   });
@@ -595,35 +933,49 @@ describe("collection sagas", () => {
     let collection, deleteAttachment;
 
     before(() => {
-      collection = {removeAttachment() {}};
-      const bucket = {collection() {return collection;}};
-      setClient({bucket() {return bucket;}});
-      const action = collectionActions.deleteAttachment("bucket", "collection", "record");
+      collection = { removeAttachment() {} };
+      const bucket = {
+        collection() {
+          return collection;
+        },
+      };
+      setClient({
+        bucket() {
+          return bucket;
+        },
+      });
+      const action = actions.deleteAttachment("bucket", "collection", "record");
       deleteAttachment = saga.deleteAttachment(() => {}, action);
     });
 
     it("should mark the current collection as busy", () => {
-      expect(deleteAttachment.next().value)
-        .eql(put(collectionActions.collectionBusy(true)));
+      expect(deleteAttachment.next().value).eql(
+        put(actions.collectionBusy(true))
+      );
     });
 
     it("should send a request for deleting the record attachment", () => {
-      expect(deleteAttachment.next().value)
-        .eql(call([collection, collection.removeAttachment], "record"));
+      expect(deleteAttachment.next().value).eql(
+        call([collection, collection.removeAttachment], "record")
+      );
     });
 
     it("should update the route path", () => {
-      expect(deleteAttachment.next().value)
-        .eql(put(redirectTo("record:attributes", {
-          bid: "bucket",
-          cid: "collection",
-          rid: "record",
-        })));
+      expect(deleteAttachment.next().value).eql(
+        put(
+          redirectTo("record:attributes", {
+            bid: "bucket",
+            cid: "collection",
+            rid: "record",
+          })
+        )
+      );
     });
 
     it("should dispatch a notification", () => {
-      expect(deleteAttachment.next().value)
-        .eql(put(notifySuccess("Attachment deleted.")));
+      expect(deleteAttachment.next().value).eql(
+        put(notifySuccess("Attachment deleted."))
+      );
     });
   });
 
@@ -636,8 +988,16 @@ describe("collection sagas", () => {
         addAttachment() {},
         createRecord() {},
       };
-      const bucket = {collection() {return collection;}};
-      setClient({bucket() {return bucket;}});
+      const bucket = {
+        collection() {
+          return collection;
+        },
+      };
+      setClient({
+        bucket() {
+          return bucket;
+        },
+      });
     });
 
     describe("Attachments disabled", () => {
@@ -648,17 +1008,22 @@ describe("collection sagas", () => {
           settings,
           session: {
             serverInfo: {
-              capabilities: {}
-            }
-          }
+              capabilities: {},
+            },
+          },
         });
-        const action = collectionActions.bulkCreateRecords("bucket", "collection", records);
+        const action = actions.bulkCreateRecords(
+          "bucket",
+          "collection",
+          records
+        );
         bulkCreateRecords = saga.bulkCreateRecords(getState, action);
       });
 
       it("should mark the current collection as busy", () => {
-        expect(bulkCreateRecords.next().value)
-          .eql(put(collectionActions.collectionBusy(true)));
+        expect(bulkCreateRecords.next().value).eql(
+          put(actions.collectionBusy(true))
+        );
       });
 
       it("should batch create records", () => {
@@ -667,25 +1032,32 @@ describe("collection sagas", () => {
         // We can't simply test for the passed batch function, so we're testing
         // the provided argument type here.
         expect(v.CALL.args[0]).to.be.a("function");
-        expect(v.CALL.args[1]).eql({aggregate: true});
+        expect(v.CALL.args[1]).eql({ aggregate: true });
       });
 
       it("should update the route path", () => {
-        expect(bulkCreateRecords.next({published: records, errors: []}).value)
-          .eql(put(redirectTo("collection:records", {
-            bid: "bucket",
-            cid: "collection",
-          })));
+        expect(
+          bulkCreateRecords.next({ published: records, errors: [] }).value
+        ).eql(
+          put(
+            redirectTo("collection:records", {
+              bid: "bucket",
+              cid: "collection",
+            })
+          )
+        );
       });
 
       it("should dispatch a notification", () => {
-        expect(bulkCreateRecords.next().value)
-          .eql(put(notifySuccess("2 records created.")));
+        expect(bulkCreateRecords.next().value).eql(
+          put(notifySuccess("2 records created."))
+        );
       });
 
       it("should unmark the current collection as busy", () => {
-        expect(bulkCreateRecords.next().value)
-          .eql(put(collectionActions.collectionBusy(false)));
+        expect(bulkCreateRecords.next().value).eql(
+          put(actions.collectionBusy(false))
+        );
       });
     });
 
@@ -697,52 +1069,66 @@ describe("collection sagas", () => {
           settings,
           session: {
             serverInfo: {
-              capabilities: {attachments: {}}
-            }
-          }
+              capabilities: { attachments: {} },
+            },
+          },
         });
-        const action = collectionActions.bulkCreateRecords(
-          "bucket", "collection", recordsWithAttachment);
+        const action = actions.bulkCreateRecords(
+          "bucket",
+          "collection",
+          recordsWithAttachment
+        );
         bulkCreateRecords = saga.bulkCreateRecords(getState, action);
       });
 
       it("should mark the current collection as busy", () => {
-        expect(bulkCreateRecords.next().value)
-          .eql(put(collectionActions.collectionBusy(true)));
+        expect(bulkCreateRecords.next().value).eql(
+          put(actions.collectionBusy(true))
+        );
       });
 
       it("should send the first attachment", () => {
-        expect(bulkCreateRecords.next().value)
-          .eql(call([collection, collection.addAttachment],
-                    recordsWithAttachment[0].__attachment__,
-                    record));
+        expect(bulkCreateRecords.next().value).eql(
+          call(
+            [collection, collection.addAttachment],
+            recordsWithAttachment[0].__attachment__,
+            record
+          )
+        );
       });
 
       it("should send the second record with no attachment", () => {
-        expect(bulkCreateRecords.next().value)
-          .eql(call([collection, collection.createRecord],
-                    record2));
+        expect(bulkCreateRecords.next().value).eql(
+          call([collection, collection.createRecord], record2)
+        );
       });
 
       it("should update the route path", () => {
-        expect(bulkCreateRecords.next({
-          published: recordsWithAttachment,
-          errors: [],
-        }).value)
-          .eql(put(redirectTo("collection:records", {
-            bid: "bucket",
-            cid: "collection",
-          })));
+        expect(
+          bulkCreateRecords.next({
+            published: recordsWithAttachment,
+            errors: [],
+          }).value
+        ).eql(
+          put(
+            redirectTo("collection:records", {
+              bid: "bucket",
+              cid: "collection",
+            })
+          )
+        );
       });
 
       it("should dispatch a notification", () => {
-        expect(bulkCreateRecords.next().value)
-          .eql(put(notifySuccess("2 records created.")));
+        expect(bulkCreateRecords.next().value).eql(
+          put(notifySuccess("2 records created."))
+        );
       });
 
       it("should unmark the current collection as busy", () => {
-        expect(bulkCreateRecords.next().value)
-          .eql(put(collectionActions.collectionBusy(false)));
+        expect(bulkCreateRecords.next().value).eql(
+          put(actions.collectionBusy(false))
+        );
       });
     });
 
@@ -754,24 +1140,33 @@ describe("collection sagas", () => {
           settings,
           session: {
             serverInfo: {
-              capabilities: {}
-            }
-          }
+              capabilities: {},
+            },
+          },
         });
-        const action = collectionActions.bulkCreateRecords(
-          "bucket", "collection", records);
+        const action = actions.bulkCreateRecords(
+          "bucket",
+          "collection",
+          records
+        );
         bulkCreateRecords = saga.bulkCreateRecords(getState, action);
         bulkCreateRecords.next();
       });
 
       it("should dispatch an error notification action", () => {
-        expect(bulkCreateRecords.throw("error").value)
-          .eql(put(notifyError("Couldn't create some records.", "error", {details: []})));
+        expect(bulkCreateRecords.throw("error").value).eql(
+          put(
+            notifyError("Couldn't create some records.", "error", {
+              details: [],
+            })
+          )
+        );
       });
 
       it("should unmark the current collection as busy", () => {
-        expect(bulkCreateRecords.next().value)
-          .eql(put(collectionActions.collectionBusy(false)));
+        expect(bulkCreateRecords.next().value).eql(
+          put(actions.collectionBusy(false))
+        );
       });
     });
   });
@@ -781,71 +1176,131 @@ describe("collection sagas", () => {
       let client, listHistory;
 
       before(() => {
-        client = {listHistory() {}};
-        setClient({bucket(){ return client; }});
-        const action = collectionActions.listCollectionHistory("bucket", "collection", "record");
-        listHistory = saga.listHistory(() => {}, action);
+        client = { listHistory() {} };
+        setClient({
+          bucket() {
+            return client;
+          },
+        });
+        const action = actions.listCollectionHistory(
+          "bucket",
+          "collection",
+          "record"
+        );
+        const getState = () => ({ settings });
+        listHistory = saga.listHistory(getState, action);
       });
 
-      it("should fetch history on cpllection", () => {
-        expect(listHistory.next().value)
-          .eql(call([client, client.listHistory], {
+      it("should fetch history on collection", () => {
+        expect(listHistory.next().value).eql(
+          call([client, client.listHistory], {
             since: undefined,
-            filters: {
-              resource_name: undefined,
-              collection_id: "collection",
-            }
-          }));
-      });
-
-      it("should filter from timestamp if provided", () => {
-        const action = collectionActions.listCollectionHistory("bucket", "collection", {since: 42});
-        const historySaga = saga.listHistory(() => {}, action);
-        expect(historySaga.next().value)
-          .eql(call([client, client.listHistory], {
+            limit: 42,
             filters: {
               resource_name: undefined,
               collection_id: "collection",
             },
-            since: 42
-          }));
+          })
+        );
+      });
+
+      it("should filter from timestamp if provided", () => {
+        const action = actions.listCollectionHistory("bucket", "collection", {
+          since: 42,
+        });
+        const historySaga = saga.listHistory(() => ({ settings }), action);
+        expect(historySaga.next().value).eql(
+          call([client, client.listHistory], {
+            filters: {
+              resource_name: undefined,
+              collection_id: "collection",
+            },
+            since: 42,
+            limit: 42,
+          })
+        );
       });
 
       it("should filter from resource_name if provided", () => {
-        const action = collectionActions.listCollectionHistory("bucket", "collection", {since: 42, resource_name: "record"});
-        const historySaga = saga.listHistory(() => {}, action);
-        expect(historySaga.next().value)
-          .eql(call([client, client.listHistory], {
+        const action = actions.listCollectionHistory("bucket", "collection", {
+          since: 42,
+          resource_name: "record",
+        });
+        const historySaga = saga.listHistory(() => ({ settings }), action);
+        expect(historySaga.next().value).eql(
+          call([client, client.listHistory], {
             filters: {
               resource_name: "record",
               collection_id: "collection",
             },
-            since: 42
-          }));
+            since: 42,
+            limit: 42,
+          })
+        );
       });
 
       it("should dispatch the listCollectionHistorySuccess action", () => {
         const history = [];
-        const result = {data: history};
-        expect(listHistory.next(result).value)
-          .eql(put(collectionActions.listCollectionHistorySuccess(history)));
+        const result = { data: history };
+        expect(listHistory.next(result).value).eql(
+          put(actions.listCollectionHistorySuccess(history))
+        );
       });
-
     });
 
     describe("Failure", () => {
       let listHistory;
 
       before(() => {
-        const action = collectionActions.listCollectionHistory("bucket", "collection", "record");
-        listHistory = saga.listHistory(() => {}, action);
+        const action = actions.listCollectionHistory(
+          "bucket",
+          "collection",
+          "record"
+        );
+        const getState = () => ({ settings });
+        listHistory = saga.listHistory(getState, action);
         listHistory.next();
       });
 
       it("should dispatch an error notification action", () => {
-        expect(listHistory.throw("error").value)
-          .eql(put(notifyError("Couldn't list collection history.", "error", {clear: true})));
+        expect(listHistory.throw("error").value).eql(
+          put(
+            notifyError("Couldn't list collection history.", "error", {
+              clear: true,
+            })
+          )
+        );
       });
+    });
+  });
+
+  describe("listNextHistory()", () => {
+    let listNextHistory;
+
+    const fakeNext = () => {};
+
+    before(() => {
+      const action = actions.listCollectionNextHistory();
+      const getState = () => ({ collection: { history: { next: fakeNext } } });
+      listNextHistory = saga.listNextHistory(getState, action);
+    });
+
+    it("should fetch the next history page", () => {
+      expect(listNextHistory.next().value).eql(call(fakeNext));
+    });
+
+    it("should dispatch the listBucketHistorySuccess action", () => {
+      expect(
+        listNextHistory.next({
+          data: [],
+          hasNextPage: true,
+          next: fakeNext,
+        }).value
+      ).eql(put(actions.listCollectionHistorySuccess([], true, fakeNext)));
+    });
+
+    it("should scroll the window to the bottom", () => {
+      expect(listNextHistory.next().value).eql(call(scrollToBottom));
     });
   });
 });

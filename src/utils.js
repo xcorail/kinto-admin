@@ -1,17 +1,16 @@
 /* @flow */
 
-import type { RecordData, Capabilities } from "./types";
+import type { RecordData, ResourceHistoryEntry, Capabilities } from "./types";
 import React from "react";
-import _timeago  from "timeago.js";
-
+import _timeago from "timeago.js";
 
 export function clone(obj: any) {
   return JSON.parse(JSON.stringify(obj));
 }
 
 export function omit(obj: Object, keys: string[] = []): Object {
-  return Object.keys(obj).reduce((acc:Object, key:string) => {
-    return keys.includes(key) ? acc : {...acc, [key]: obj[key]};
+  return Object.keys(obj).reduce((acc: Object, key: string) => {
+    return keys.includes(key) ? acc : { ...acc, [key]: obj[key] };
   }, {});
 }
 
@@ -33,7 +32,7 @@ export function validJSON(string: string): boolean {
   try {
     JSON.parse(string);
     return true;
-  } catch(err) {
+  } catch (err) {
     return false;
   }
 }
@@ -42,10 +41,10 @@ export function validateSchema(jsonSchema: string) {
   let schema: Object;
   try {
     schema = JSON.parse(jsonSchema);
-  } catch(err) {
+  } catch (err) {
     throw "The schema is not valid JSON";
   }
-  const checks: Array<{test: () => boolean, error: string}> = [
+  const checks: Array<{ test: () => boolean, error: string }> = [
     {
       test: () => isObject(schema),
       error: "The schema is not an object",
@@ -71,7 +70,7 @@ export function validateSchema(jsonSchema: string) {
       error: "The 'properties' property object has no properties",
     },
   ];
-  checks.forEach(({test, error}) => {
+  checks.forEach(({ test, error }) => {
     if (!test()) {
       throw error;
     }
@@ -80,23 +79,28 @@ export function validateSchema(jsonSchema: string) {
 }
 
 export function validateUiSchema(jsonUiSchema: string, jsonSchema: string) {
-  let uiSchema: Object, schema:Object = JSON.parse(jsonSchema);
+  let uiSchema: Object,
+    schema: Object = JSON.parse(jsonSchema);
   try {
     uiSchema = JSON.parse(jsonUiSchema);
-  } catch(err) {
+  } catch (err) {
     throw "The uiSchema is not valid JSON";
   }
   const hasOrder: boolean = uiSchema.hasOwnProperty("ui:order");
-  let checks: Array<{test: () => boolean, error: string}> = [
+  let checks: Array<{ test: () => boolean, error: string }> = [
     {
       test: () => isObject(uiSchema),
       error: "The uiSchema is not an object",
-    }
+    },
   ];
   if (hasOrder) {
     const order = uiSchema["ui:order"];
     const properties: string[] = Object.keys(schema.properties);
-    const arrayId = (array: string[]): string => array.slice().sort().toString();
+    const arrayId = (array: string[]): string =>
+      array
+        .slice()
+        .sort()
+        .toString();
     checks = checks.concat([
       {
         test: () => Array.isArray(order),
@@ -105,10 +109,10 @@ export function validateUiSchema(jsonUiSchema: string, jsonSchema: string) {
       {
         test: () => arrayId(order) === arrayId(properties),
         error: "The ui:order directive should list all schema properties",
-      }
+      },
     ]);
   }
-  checks.forEach(({test, error}) => {
+  checks.forEach(({ test, error }) => {
     if (!test()) {
       throw error;
     }
@@ -120,8 +124,10 @@ export function cleanRecord(record: RecordData): RecordData {
   return omit(record, ["id", "schema", "last_modified"]);
 }
 
-
-function handleNestedDisplayField(record: RecordData, displayField: string): any {
+function handleNestedDisplayField(
+  record: RecordData,
+  displayField: string
+): any {
   const fields = displayField.split(".");
 
   // If the first part matches, we try to render its value.
@@ -132,7 +138,7 @@ function handleNestedDisplayField(record: RecordData, displayField: string): any
   // In case we have properties containing dots,
   // we look for other candidates in the record attributes.
   let biggestCandidate = [];
-  let candidates = Object.keys(record).filter((key) => {
+  let candidates = Object.keys(record).filter(key => {
     return key.indexOf(fields[0] + ".") === 0;
   });
 
@@ -166,7 +172,11 @@ function handleNestedDisplayField(record: RecordData, displayField: string): any
 
 export function linkify(string: string): any {
   if (/https?:\/\//.test(string)) {
-    return <a href={string} title={string} target="_blank">{string}</a>;
+    return (
+      <a href={string} title={string} target="_blank">
+        {string}
+      </a>
+    );
   }
   return string;
 }
@@ -179,6 +189,11 @@ export function renderDisplayField(record: Object, displayField: string): any {
     const field = record[displayField];
     if (typeof field === "string") {
       return linkify(field);
+    } else if (
+      Array.isArray(field) &&
+      field.every(x => typeof x === "string")
+    ) {
+      return field.join(", ");
     } else if (typeof field === "object") {
       return JSON.stringify(field);
     } else {
@@ -193,26 +208,61 @@ export function renderDisplayField(record: Object, displayField: string): any {
 }
 
 export function humanDate(since: string | number): string {
-  return new Date(parseInt(since, 10)).toLocaleDateString("en-GB", {
-    timeZone: "UTC",
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  }) + " UTC";
+  return (
+    new Date(parseInt(since, 10)).toLocaleDateString("en-GB", {
+      timeZone: "UTC",
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }) + " UTC"
+  );
 }
 
-export function buildAttachmentUrl(record: RecordData, capabilities: Capabilities): ?string {
-  if (typeof record.attachment !== "object" || typeof capabilities.attachments !== "object") {
+export function buildAttachmentUrl(
+  record: RecordData,
+  capabilities: Capabilities
+): ?string {
+  if (record.attachment == null || capabilities.attachments == null) {
     return;
   }
-  const {base_url=""} = capabilities.attachments;
-  const {location} = record.attachment;
-  const ensureTrailingSlash = str => str.endsWith("/") ? str : str + "/";
-  const dropStartingSlash = str => str.startsWith("/") ? str.slice(1) : str;
-  return location.startsWith(base_url) ?
-    location : ensureTrailingSlash(base_url) + dropStartingSlash(location);
+  const { base_url = "" } = capabilities.attachments;
+  const { location } = record.attachment;
+  const ensureTrailingSlash = str => (str.endsWith("/") ? str : str + "/");
+  const dropStartingSlash = str => (str.startsWith("/") ? str.slice(1) : str);
+  return location.startsWith(base_url)
+    ? location
+    : ensureTrailingSlash(base_url) + dropStartingSlash(location);
+}
+
+export function scrollToTop(): Promise<void> {
+  window.scrollTo(0, 0);
+  return Promise.resolve();
+}
+
+export function scrollToBottom(): Promise<void> {
+  window.scrollTo(0, window.document.body.scrollHeight);
+  return Promise.resolve();
+}
+
+export function sortHistoryEntryPermissions(
+  entry: ResourceHistoryEntry
+): ResourceHistoryEntry {
+  const { permissions } = entry.target;
+  if (!permissions) {
+    return entry;
+  }
+  return {
+    ...entry,
+    target: {
+      ...entry.target,
+      permissions: Object.keys(permissions).reduce(
+        (acc, type) => ({ ...acc, [type]: permissions[type].sort() }),
+        {}
+      ),
+    },
+  };
 }

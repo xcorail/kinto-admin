@@ -8,38 +8,59 @@ import type {
   RouteLocation,
 } from "../../types";
 
-import React, { Component } from "react";
+import React, { PureComponent } from "react";
 
-import Spinner from "../Spinner";
 import HistoryTable from "../HistoryTable";
 import CollectionTabs from "./CollectionTabs";
 
+type Props = {
+  session: SessionState,
+  bucket: BucketState,
+  collection: CollectionState,
+  capabilities: Capabilities,
+  params: CollectionRouteParams,
+  location: RouteLocation,
+  listCollectionNextHistory: () => void,
+  notifyError: (message: string, error: ?Error) => void,
+};
 
-export default class CollectionHistory extends Component {
-  props: {
-    session: SessionState,
-    bucket: BucketState,
-    collection: CollectionState,
-    capabilities: Capabilities,
-    params: CollectionRouteParams,
-    location: RouteLocation,
-  };
-
+export default class CollectionHistory extends PureComponent<Props> {
   render() {
-    const {params, collection, capabilities, location} = this.props;
-    const {bid, cid} = params;
-    const {history, historyLoaded} = collection;
+    const {
+      params,
+      collection,
+      capabilities,
+      location,
+      listCollectionNextHistory,
+      notifyError,
+    } = this.props;
+    const { bid, cid } = params;
+    const { history: { entries, loaded, hasNextPage } } = collection;
 
     return (
       <div>
-        <h1>History for <b>{bid}/{cid}</b></h1>
+        <h1>
+          History for{" "}
+          <b>
+            {bid}/{cid}
+          </b>
+        </h1>
         <CollectionTabs
           bid={bid}
           cid={cid}
           selected="history"
           capabilities={capabilities}>
-          { !historyLoaded ? <Spinner /> :
-            <HistoryTable bid={bid} history={history} location={location} />}
+          <HistoryTable
+            enableDiffOverview
+            bid={bid}
+            cid={cid}
+            historyLoaded={loaded}
+            history={entries}
+            hasNextHistory={hasNextPage}
+            listNextHistory={listCollectionNextHistory}
+            location={location}
+            notifyError={notifyError}
+          />
         </CollectionTabs>
       </div>
     );
